@@ -99,7 +99,9 @@ executable haskell-ledger
     -- Other library packages from which modules are imported.
     build-depends:
         base ^>=4.20.2.0,
-        haskell-ledger
+        haskell-ledger,
+        text,
+        postgresql-simple
 
     -- Directories containing source files.
     hs-source-dirs:   app
