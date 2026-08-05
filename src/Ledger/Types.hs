@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedRecordDot #-}
 
 -- The domain core. Pure, no IO. Everything the rest of the
 -- project depends on for correctness lives here.

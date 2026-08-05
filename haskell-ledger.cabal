@@ -60,6 +60,7 @@ library
 
     -- Modules exported by the library.
     exposed-modules:  Ledger.Types
+                      Ledger.Db
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -69,6 +70,10 @@ library
 
     -- Other library packages from which modules are imported.
     build-depends:    base ^>=4.20.2.0
+                    , postgresql-simple
+                    , text
+                    , bytestring
+                    , dotenv
 
     -- Directories containing source files.
     hs-source-dirs:   src
@@ -76,6 +81,8 @@ library
     -- Base language which the package is written in.
     default-language: GHC2021
 
+    default-extensions: OverloadedStrings
+                      , OverloadedRecordDot
 executable haskell-ledger
     -- Import common warning flags.
     import:           warnings

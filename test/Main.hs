@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedRecordDot #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 -- Property tests for the ledger domain core.
 --
