@@ -54,6 +54,19 @@ createAccount conn name = do
     [Only aid] -> pure (AccountId aid)
     _          -> error "createAccount: expected exactly one row back"
 
+-- Look up an account's name by id. Returns Nothing if the
+-- account doesn't exist. Handlers use this to turn a bogus
+-- :id in the URL into a 404 instead of a successful empty
+-- response.
+fetchAccountName :: Connection -> AccountId -> IO (Maybe Text)
+fetchAccountName conn aid = do
+  rows <- query conn
+    "SELECT name FROM accounts WHERE id = ?"
+    (Only aid)
+  case rows of
+    [Only name] -> pure (Just name)
+    _           -> pure Nothing
+
 -- ------------------------------------------------------------
 -- Transactions
 -- ------------------------------------------------------------
@@ -87,7 +100,7 @@ insertTransaction conn mKey tx =
         "INSERT INTO transactions (idempotency_key) VALUES (?) RETURNING id"
         (Only key)
       -- 2. Insert every entry, pointing at that tx id.
-      mapM_ (insertEntry txId) (entries tx)
+      mapM_ (insertEntry txId) tx.entries
       pure txId
 
     insertEntry txId e = execute conn
@@ -108,6 +121,25 @@ insertTransaction conn mKey tx =
             [Only existing] -> pure existing
             _               -> throwIO err
         _ -> throwIO err
+
+-- Look up a transaction's entry list by its id. Returns
+-- Nothing if the tx doesn't exist. Used by GET /transactions/:id.
+fetchTransaction :: Connection -> Int64 -> IO (Maybe [(AccountId, Money)])
+fetchTransaction conn txId = do
+  -- First check the transaction row itself exists. If we only
+  -- queried entries, a tx with zero entries (shouldn't happen,
+  -- but hypothetically) would look the same as a missing tx.
+  txRows <- query conn
+    "SELECT id FROM transactions WHERE id = ?"
+    (Only txId) :: IO [Only Int64]
+  case txRows of
+    [] -> pure Nothing
+    _  -> do
+      es <- query conn
+        "SELECT account_id, amount_cents FROM entries \
+        \WHERE transaction_id = ? ORDER BY id"
+        (Only txId)
+      pure (Just es)
 
 -- ------------------------------------------------------------
 -- Reads
@@ -148,7 +180,6 @@ testConnection = do
   rows <- query_ conn "SELECT 1 :: int"
   print (rows :: [Only Int])
   close conn
-
 
 -- Test helper. Blows away all ledger state and resets sequences
 -- so each property test case starts from a clean slate.
