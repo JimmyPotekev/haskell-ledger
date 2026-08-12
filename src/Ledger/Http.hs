@@ -17,11 +17,9 @@
 --   other DB exceptions               -> Scotty default 500
 module Ledger.Http where
 
-import           Control.Monad.IO.Class    (liftIO)
 import           Data.Aeson                (FromJSON (..), object, withObject, (.:), (.=))
 import           Data.Int                  (Int64)
 import           Data.Text                 (Text)
-import qualified Data.Text.Lazy            as TL
 import           Database.PostgreSQL.Simple (Connection)
 import           Network.HTTP.Types.Status (status201, status400, status404)
 import           Web.Scotty
