@@ -116,6 +116,8 @@ test-suite haskell-ledger-test
     -- Base language which the package is written in.
     default-language: GHC2021
 
+    default-extensions: OverloadedStrings
+                      , OverloadedRecordDot
     -- Modules included in this executable, other than Main.
     -- other-modules:
 
@@ -131,7 +133,11 @@ test-suite haskell-ledger-test
     -- The entrypoint to the test suite.
     main-is:          Main.hs
 
+    other-modules:    Integration
+
     -- Test dependencies.
     build-depends:    base ^>=4.20.2.0
                     , haskell-ledger
                     , hedgehog
+                    , postgresql-simple
+                    , text

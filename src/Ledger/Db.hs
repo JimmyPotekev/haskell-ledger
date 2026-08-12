@@ -148,3 +148,12 @@ testConnection = do
   rows <- query_ conn "SELECT 1 :: int"
   print (rows :: [Only Int])
   close conn
+
+
+-- Test helper. Blows away all ledger state and resets sequences
+-- so each property test case starts from a clean slate.
+truncateAll :: Connection -> IO ()
+truncateAll conn = do
+  _ <- execute_ conn
+    "TRUNCATE entries, transactions, accounts RESTART IDENTITY CASCADE"
+  pure ()

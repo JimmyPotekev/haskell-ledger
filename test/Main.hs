@@ -1,19 +1,30 @@
+{-# LANGUAGE OverloadedRecordDot #-}
+{-# LANGUAGE OverloadedStrings   #-}
 
 -- Property tests for the ledger domain core.
 --
 -- Three properties, run with 100 random inputs each by default.
 -- If any input breaks a rule, Hedgehog shrinks it to a minimal
 -- failing case before reporting.
+--
+-- Chunk 2 add-on: also runs integration tests against a real
+-- Postgres database. Those live in Integration.hs. We share one
+-- Connection across the integration suite and run it sequentially
+-- because every case truncates the DB.
 module Main where
 
 import           Control.Monad   (unless)
+import           Database.PostgreSQL.Simple (close)
 import           System.Exit     (exitFailure)
 
 import           Hedgehog
 import qualified Hedgehog.Gen    as Gen
 import qualified Hedgehog.Range  as Range
 
+import           Ledger.Db
 import           Ledger.Types
+
+import qualified Integration
 
 -- ------------------------------------------------------------
 -- Generators
@@ -89,15 +100,32 @@ prop_roundtrip_sums_zero = property $ do
     Right tx -> sumEntries tx.entries === 0
     Left  e  -> annotateShow e >> failure
 
+-- Group the pure properties so they can be reported together,
+-- separately from the integration group.
+pureGroup :: Group
+pureGroup = Group "Ledger.Types"
+  [ ("prop_balanced_succeeds",   prop_balanced_succeeds)
+  , ("prop_unbalanced_fails",    prop_unbalanced_fails)
+  , ("prop_roundtrip_sums_zero", prop_roundtrip_sums_zero)
+  ]
+
 -- ------------------------------------------------------------
 -- Entry point
 -- ------------------------------------------------------------
 
 main :: IO ()
 main = do
-  ok <- checkParallel $ Group "Ledger.Types"
-    [ ("prop_balanced_succeeds",   prop_balanced_succeeds)
-    , ("prop_unbalanced_fails",    prop_unbalanced_fails)
-    , ("prop_roundtrip_sums_zero", prop_roundtrip_sums_zero)
-    ]
-  unless ok exitFailure
+  -- One connection shared across the integration suite. The
+  -- tests truncate between cases so cross-case pollution isn't
+  -- an issue, and reusing the connection keeps things fast.
+  conn <- openConnection
+
+  -- Pure group can run in parallel, no shared state.
+  ok1 <- checkParallel pureGroup
+  -- Integration group runs sequentially because every case
+  -- truncates the DB on the shared connection. Parallel would
+  -- race.
+  ok2 <- checkSequential (Integration.integrationGroup conn)
+
+  close conn
+  unless (ok1 && ok2) exitFailure
