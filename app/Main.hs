@@ -1,8 +1,11 @@
 module Main where
 
 import           Ledger.Http
+import           System.Environment (lookupEnv)
 
 main :: IO ()
 main = do
-  putStrLn "starting ledger on http://localhost:3000"
-  runServer 3000
+  portStr <- lookupEnv "PORT"
+  let port = maybe 3000 read portStr
+  putStrLn $ "starting ledger on port " ++ show port
+  runServer port

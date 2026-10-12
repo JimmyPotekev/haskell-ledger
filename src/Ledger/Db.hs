@@ -6,6 +6,7 @@ import           Data.Int                             (Int64)
 import           Data.Text                            (Text)
 import           Database.PostgreSQL.Simple
 import           Database.PostgreSQL.Simple.Errors    (ConstraintViolation (..), constraintViolation)
+import           System.Directory                      (doesFileExist)
 import           System.Environment                   (getEnv)
 import           Text.Read                            (readMaybe)
 
@@ -17,7 +18,8 @@ import           Ledger.Types
 
 loadConnectInfo :: IO ConnectInfo
 loadConnectInfo = do
-  _        <- loadFile defaultConfig
+  envExists <- doesFileExist ".env"
+  if envExists then loadFile defaultConfig >> pure () else pure ()
   host     <- getEnv "LEDGER_DB_HOST"
   portStr  <- getEnv "LEDGER_DB_PORT"
   user     <- getEnv "LEDGER_DB_USER"

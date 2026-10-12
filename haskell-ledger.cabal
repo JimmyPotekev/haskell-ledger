@@ -76,6 +76,7 @@ library
                     , bytestring
                     , case-insensitive
                     , wai
+                    , directory
                     , dotenv
                     , scotty
                     , aeson
