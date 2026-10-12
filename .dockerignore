@@ -1,0 +1,7 @@
+dist-newstyle/
+web/
+.env
+.git/
+*.hi
+*.o
+test/
