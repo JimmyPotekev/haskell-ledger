@@ -2,6 +2,23 @@
 
 A minimal double-entry ledger service in Haskell, backed by Postgres and exposed over HTTP. The headline invariant is that money is conserved: the sum of signed entries in every transaction equals zero, and that rule is enforced in two places that reinforce each other. A smart constructor on the `Transaction` type rejects any entry list that does not sum to zero, so unbalanced transactions cannot exist as values in the program. Every write then happens inside a single Postgres transaction, so a crash mid-write cannot leave half a transfer on disk. Property tests over hundreds of randomized transfers assert both of these invariants on every run.
 
+## Live demo
+
+> **Note:** The frontend is a thin UI for exercising the API — the Haskell backend is the focus of this project.
+
+[![Demo screenshot](docs/demo-screenshot.png)](https://haskell-ledger.vercel.app/)
+
+**[Try it live →](https://haskell-ledger.vercel.app/)**
+
+The demo talks to the same Haskell service described below. Here are some things to try:
+
+1. **Create two accounts** — e.g. "alice" and "bob". Note the account IDs returned.
+2. **Make a transfer** — enter entries that sum to zero: debit one account and credit the other. For example, move $5.00 from alice (account 1) to bob (account 2) with entries `[{"account":1,"amount":-500},{"account":2,"amount":500}]` and any idempotency key like `"demo-1"`.
+3. **Check balances** — look up each account's balance and confirm the amounts mirror each other.
+4. **View history** — pull up an account's transaction history to see every entry.
+5. **Try an unbalanced transfer** — enter amounts that don't sum to zero (e.g. `-500` and `300`) and watch the API reject it. This is the smart constructor at work.
+6. **Replay with the same idempotency key** — submit the same transfer again with `"demo-1"` and confirm you get the original transaction back, not a duplicate.
+
 ## Design choices
 
 **Money as a newtype over integer cents.** `Money` is a `newtype` wrapping `Int`, not a `Double` and not a bare `Int`. Floats are off the table for anything financial, since rounding errors accumulate silently. The newtype also keeps account ids and amounts from being accidentally interchanged at a call site, which is a mistake the compiler cannot catch when both are `Int`. Newtype deriving pulls `FromField`, `ToField`, `FromJSON`, and `ToJSON` through for free, so the type is strict in Haskell but transparent at the DB and JSON boundaries.
