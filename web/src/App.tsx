@@ -16,7 +16,10 @@ function App() {
 
   return (
     <div className="app">
-      <h1 className="app-title">Ledger</h1>
+      <header className="app-header">
+        <h1 className="app-title">Ledger</h1>
+        <p className="app-subtitle">Double-entry accounting API</p>
+      </header>
       <div className="panels">
         <CreateAccount accounts={accounts} onCreated={handleAccountCreated} />
         <Transfer />

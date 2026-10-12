@@ -37,7 +37,7 @@ export default function Transfer() {
     try {
       const entries: TransferEntry[] = rows.map(r => ({
         account: parseInt(r.account, 10),
-        amount: parseInt(r.amount, 10),
+        amount: Math.round(parseFloat(r.amount) * 100),
       }))
       if (entries.some(e => isNaN(e.account) || isNaN(e.amount))) {
         throw new Error('All fields must be valid numbers')
@@ -66,7 +66,8 @@ export default function Transfer() {
             />
             <input
               type="number"
-              placeholder="Amount (cents)"
+              step="0.01"
+              placeholder="Amount ($)"
               value={row.amount}
               onChange={e => updateRow(i, 'amount', e.target.value)}
               disabled={loading}

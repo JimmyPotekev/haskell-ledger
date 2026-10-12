@@ -24,8 +24,9 @@ export default function BalanceLookup() {
     }
   }
 
-  function formatCents(cents: number): string {
-    return (cents / 100).toFixed(2)
+  function formatDollars(cents: number): string {
+    const abs = Math.abs(cents / 100).toFixed(2)
+    return cents < 0 ? `-$${abs}` : `$${abs}`
   }
 
   return (
@@ -44,7 +45,9 @@ export default function BalanceLookup() {
         </button>
       </form>
       {balance !== null && (
-        <p className="result">${formatCents(balance)}</p>
+        <p className={`result ${balance < 0 ? 'amount-negative' : 'amount-positive'}`}>
+          {formatDollars(balance)}
+        </p>
       )}
       {error && <p className="error">{error}</p>}
     </div>

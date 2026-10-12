@@ -24,8 +24,9 @@ export default function TransactionDetail() {
     }
   }
 
-  function formatCents(cents: number): string {
-    return (cents / 100).toFixed(2)
+  function formatDollars(cents: number): string {
+    const abs = Math.abs(cents / 100).toFixed(2)
+    return cents < 0 ? `-$${abs}` : `$${abs}`
   }
 
   return (
@@ -54,7 +55,9 @@ export default function TransactionDetail() {
               {tx.entries.map((e, i) => (
                 <tr key={i}>
                   <td>{e.account}</td>
-                  <td>${formatCents(e.amount)}</td>
+                  <td className={e.amount < 0 ? 'amount-negative' : 'amount-positive'}>
+                    {formatDollars(e.amount)}
+                  </td>
                 </tr>
               ))}
             </tbody>
