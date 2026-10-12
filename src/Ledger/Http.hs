@@ -18,10 +18,14 @@
 module Ledger.Http where
 
 import           Data.Aeson                (FromJSON (..), object, withObject, (.:), (.=))
+import qualified Data.ByteString           as BS
+import qualified Data.CaseInsensitive      as CI
 import           Data.Int                  (Int64)
 import           Data.Text                 (Text)
 import           Database.PostgreSQL.Simple (Connection)
-import           Network.HTTP.Types.Status (status201, status400, status404)
+import           Network.HTTP.Types.Status (status200, status201, status400, status404)
+import           Network.Wai               (Middleware, mapResponseHeaders,
+                                            requestMethod, responseLBS)
 import           Web.Scotty
 
 import           Ledger.Db
@@ -39,6 +43,7 @@ runServer port = do
 -- All route definitions in one place for easy scanning.
 routes :: Connection -> ScottyM ()
 routes conn = do
+  middleware corsMiddleware
   get  "/health"                 (handleHealth conn)
   post "/accounts"               (handleCreateAccount conn)
   post "/transfers"              (handleTransfer      conn)
@@ -141,6 +146,21 @@ handleGetTx conn = do
 -- ------------------------------------------------------------
 -- Helpers
 -- ------------------------------------------------------------
+
+-- CORS: let the frontend (different port during dev) talk to us.
+corsMiddleware :: Middleware
+corsMiddleware app req respond
+  | requestMethod req == "OPTIONS" =
+      respond $ responseLBS status200 corsHeaders ""
+  | otherwise =
+      app req (\response -> respond $ mapResponseHeaders (corsHeaders ++) response)
+
+corsHeaders :: [(CI.CI BS.ByteString, BS.ByteString)]
+corsHeaders =
+  [ ("Access-Control-Allow-Origin",  "*")
+  , ("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+  , ("Access-Control-Allow-Headers", "Content-Type")
+  ]
 
 -- Shared 404 shape. Takes the message, sets status, writes JSON.
 notFound404 :: Text -> ActionM ()

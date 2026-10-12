@@ -74,6 +74,8 @@ library
                     , postgresql-simple
                     , text
                     , bytestring
+                    , case-insensitive
+                    , wai
                     , dotenv
                     , scotty
                     , aeson
