@@ -82,7 +82,15 @@ instance ToJSON Transaction
 data LedgerError
   = EmptyTransaction
   | Unbalanced Int   -- carry the actual sum for debugging
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show LedgerError where
+  show EmptyTransaction = "EmptyTransaction"
+  show (Unbalanced cents) =
+    let dollars = abs cents `div` 100
+        remaining = abs cents `mod` 100
+        sign = if cents < 0 then "-" else ""
+    in "Unbalanced " ++ sign ++ show dollars ++ "." ++ (if remaining < 10 then "0" else "") ++ show remaining
 
 -- The POST /transfers body. Separate from Transaction on
 -- purpose, see the comment on Transaction above.
