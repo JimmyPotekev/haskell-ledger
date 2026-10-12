@@ -17,13 +17,15 @@
 --   other DB exceptions               -> Scotty default 500
 module Ledger.Http where
 
+import           Control.Exception          (throwIO, try)
 import           Data.Aeson                (FromJSON (..), object, withObject, (.:), (.=))
 import qualified Data.ByteString           as BS
 import qualified Data.CaseInsensitive      as CI
 import           Data.Int                  (Int64)
 import           Data.Text                 (Text)
-import           Database.PostgreSQL.Simple (Connection)
-import           Network.HTTP.Types.Status (status200, status201, status400, status404)
+import           Database.PostgreSQL.Simple (Connection, SqlError)
+import           Database.PostgreSQL.Simple.Errors (ConstraintViolation (..), constraintViolation)
+import           Network.HTTP.Types.Status (status200, status201, status400, status404, status409)
 import           Network.Wai               (Middleware, mapResponseHeaders,
                                             requestMethod, responseLBS)
 import           Web.Scotty
@@ -71,9 +73,15 @@ handleCreateAccount conn = do
   -- Value and parsing manually would also work; a tiny named
   -- type is clearer. Keeping this one inline for now.
   req <- jsonData :: ActionM CreateAccountReq
-  aid <- liftIO (createAccount conn req.name)
-  status status201
-  json (object ["id" .= aid, "name" .= req.name])
+  result <- liftIO (try (createAccount conn req.name) :: IO (Either SqlError AccountId))
+  case result of
+    Left e | isDuplicateName e -> do
+      status status409
+      json (object ["error" .= ("Account name already exists" :: Text)])
+    Left e  -> liftIO (throwIO e)
+    Right aid -> do
+      status status201
+      json (object ["id" .= aid, "name" .= req.name])
 
 -- POST /transfers  body: TransferRequest
 -- On success: {"transaction_id": 7}  201
@@ -161,6 +169,13 @@ corsHeaders =
   , ("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
   , ("Access-Control-Allow-Headers", "Content-Type")
   ]
+
+-- Check if a SqlError is the UNIQUE violation on accounts.name.
+isDuplicateName :: SqlError -> Bool
+isDuplicateName e =
+  case constraintViolation e of
+    Just (UniqueViolation "accounts_name_key") -> True
+    _                                          -> False
 
 -- Shared 404 shape. Takes the message, sets status, writes JSON.
 notFound404 :: Text -> ActionM ()

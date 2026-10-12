@@ -1,38 +1,29 @@
 import { useState } from 'react'
-import { createAccount, type Account } from './api'
+import { type Account } from './api'
+import CreateAccount from './components/CreateAccount'
+import Transfer from './components/Transfer'
+import BalanceLookup from './components/BalanceLookup'
+import AccountHistory from './components/AccountHistory'
+import TransactionDetail from './components/TransactionDetail'
+import './App.css'
 
 function App() {
-  const [result, setResult] = useState<Account | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [accounts, setAccounts] = useState<Account[]>([])
 
-  async function handleClick() {
-    setLoading(true)
-    setError(null)
-    try {
-      const account = await createAccount(`test-${Date.now()}`)
-      setResult(account)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setLoading(false)
-    }
+  function handleAccountCreated(account: Account) {
+    setAccounts(prev => [...prev, account])
   }
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "monospace" }}>
-      <h1>Ledger — CORS test</h1>
-      <button onClick={handleClick} disabled={loading}>
-        {loading ? "Creating..." : "Create test account"}
-      </button>
-      {result && (
-        <pre style={{ marginTop: "1rem" }}>
-          {JSON.stringify(result, null, 2)}
-        </pre>
-      )}
-      {error && (
-        <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>
-      )}
+    <div className="app">
+      <h1 className="app-title">Ledger</h1>
+      <div className="panels">
+        <CreateAccount accounts={accounts} onCreated={handleAccountCreated} />
+        <Transfer />
+        <BalanceLookup />
+        <AccountHistory />
+        <TransactionDetail />
+      </div>
     </div>
   )
 }
