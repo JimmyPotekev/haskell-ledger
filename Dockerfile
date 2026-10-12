@@ -1,5 +1,5 @@
 # Stage 1: build the Haskell binary
-FROM haskell:9.10 AS builder
+FROM haskell:9.10-slim-bookworm AS builder
 
 RUN apt-get update && apt-get install -y libpq-dev && rm -rf /var/lib/apt/lists/*
 
