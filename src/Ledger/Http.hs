@@ -98,9 +98,13 @@ handleTransfer conn = do
       status status400
       json (object ["error" .= show e])
     Right tx -> do
-      txId <- liftIO (insertTransaction conn req.idempotency_key tx)
-      status status201
-      json (object ["transaction_id" .= txId])
+      result <- liftIO (try (insertTransaction conn req.idempotency_key tx) :: IO (Either SqlError Int64))
+      case result of
+        Left err | isMissingAccount err -> notFound404 "account not found"
+        Left err                        -> liftIO (throwIO err)
+        Right txId -> do
+          status status201
+          json (object ["transaction_id" .= txId])
 
 -- GET /accounts/:id/balance
 -- Response: {"account_id": 1, "balance": -500}  200
@@ -176,6 +180,12 @@ isDuplicateName e =
   case constraintViolation e of
     Just (UniqueViolation "accounts_name_key") -> True
     _                                          -> False
+
+isMissingAccount :: SqlError -> Bool
+isMissingAccount e =
+  case constraintViolation e of
+    Just (ForeignKeyViolation _ _) -> True
+    _                              -> False
 
 -- Shared 404 shape. Takes the message, sets status, writes JSON.
 notFound404 :: Text -> ActionM ()
